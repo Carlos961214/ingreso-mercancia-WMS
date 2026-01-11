@@ -1,0 +1,1497 @@
+<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recepción WMS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  
+</head>
+<body>
+                    <div class="container">
+                        <div class="card">
+                    <header class="app-header">
+                    <div class="app-header-left">
+                        <div class="app-logo">
+                            RX
+                        </div>
+                        <div class="app-title">
+                            <h1>Recepción de Inventario</h1>
+                            <span>Sistema WMS · Farmacia</span>
+                        </div>
+                    </div>
+
+                    <div class="app-header-right">
+                        <button class="btn btn-secondary" onclick="openHistoryModal()">
+                            Historial
+                        </button>
+                        <button class="btn btn-primary" onclick="clearAllAndRestart()">
+                            Nueva recepción
+                        </button>
+                    </div>
+                </header>
+                
+
+<div class="input-group">
+                <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
+                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()" style="width: 100%; justify-content: center; padding: 20px;">
+                    <span style="font-size: 18px">📂</span>
+                    <span id="fileButtonText">Cargar Catálogo de Excel</span>
+                </button>
+                <div id="fileSuccess" style="display: none;" class="success-message">
+                    <span>✔</span>
+                    <span id="productsCount"></span>
+                </div>
+            </div>
+
+            <div id="bultoSection" style="display: none;" class="bulto-section">
+                <div class="bulto-card">
+                    <div class="bulto-header">
+                        <div class="bulto-icon">📦</div>
+                        <div class="bulto-info">
+                            <h3>Número de Bulto</h3>
+                            <p>Identifica el bulto que estás recibiendo</p>
+                        </div>
+                    </div>
+                    <div class="bulto-input-wrapper">
+                        <input 
+                            type="text" 
+                            id="bultoInput" 
+                            placeholder="Ej: BULTO-001, A1, Pallet-5..." 
+                            autocomplete="off"
+                            maxlength="50"
+                        >
+                        <button class="btn-bulto-clear" id="bultoClearBtn" onclick="clearBulto()" style="display: none;">
+                            ✕
+                        </button>
+                    </div>
+                    <div class="bulto-current" id="bultoDisplay" style="display: none;">
+                        <span class="bulto-label">Bulto actual:</span>
+                        <span class="bulto-value" id="bultoValue"></span>
+                        <button class="btn-bulto-edit" onclick="editBulto()">✏️ Cambiar</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="searchSection" style="display: none;">
+    <div class="search-section">
+        <div class="search-box search-box-scanner">
+            <h2>🔍 Escanear Código</h2>
+            <div class="search-wrapper">
+                <span class="search-icon">📷</span>
+                <input type="text" id="barcodeInput" placeholder="Escanea o escribe el código de barras..." autocomplete="off">
+            </div>
+            <div class="search-hint">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 14.5C11.5899 14.5 14.5 11.5899 14.5 8C14.5 4.41015 11.5899 1.5 8 1.5C4.41015 1.5 1.5 4.41015 1.5 8C1.5 11.5899 4.41015 14.5 8 14.5Z" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M8 11V8M8 5H8.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span>Usa el lector de código de barras</span>
+            </div>
+        </div>
+
+        <div class="search-box search-box-manual">
+            <h2>✍️ Buscar Manualmente</h2>
+            <div class="search-wrapper" style="position: relative; z-index: 10000;">
+                <span class="search-icon">🔎</span>
+                <input type="text" id="nameSearch" placeholder="Escribe el nombre del producto..." autocomplete="off">
+                <div id="searchResults" class="search-results" style="display: none;"></div>
+            </div>
+            <div class="search-hint">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 14.5C11.5899 14.5 14.5 11.5899 14.5 8C14.5 4.41015 11.5899 1.5 8 1.5C4.41015 1.5 1.5 4.41015 1.5 8C1.5 11.5899 4.41015 14.5 8 14.5Z" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="M8 11V8M8 5H8.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span>Escribe al menos 3 caracteres</span>
+            </div>
+        </div>
+    </div>
+
+                <div id="productCard" style="display: none;" class="product-card">
+                    <div id="programBadges" class="program-badges-container" style="display: none;"></div>
+                    <div id="blisterWarning" style="display: none;" class="blister-warning">
+                        <span style="font-size: 20px;">⚠️</span>
+                        <span>ATENCIÓN: PRODUCTO POR BLISTER</span>
+                    </div>
+                    <h3><span>✓</span> Producto Identificado</h3>
+                    <div class="product-grid">
+                        <div class="product-field">
+                            <div class="product-field-label">Nombre del Producto</div>
+                            <div class="product-field-value" id="productName"></div>
+                        </div>
+                        <div class="product-field">
+                            <div class="product-field-label">Código / SKU</div>
+                            <div class="product-field-value" id="productCode"></div>
+                        </div>
+                        <div class="product-field">
+                            <div class="product-field-label">Sincronización</div>
+                            <div class="product-field-value" id="productSync"></div>
+                        </div>
+                        <div class="product-field">
+                            <div class="product-field-label">Presentación</div>
+                            <div class="product-field-value" id="productUnit"></div>
+                        </div>
+                    </div>
+                    <div class="quantity-input-group">
+                        <input type="number" id="quantityInput" placeholder="Cantidad a recibir" min="1">
+                        <button class="btn btn-success" onclick="addItem()">
+                            <span></span> Agregar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Modal de Producto Identificado -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><span>✓</span> <span id="modalTitle">Producto seleccionado</span></h2>
+                <span class="close" onclick="closeProductModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="modalProgramBadges" class="program-badges-container" style="display: none;"></div>
+                <div id="modalBlisterWarning" style="display: none;" class="blister-warning">
+                    <span style="font-size: 20px;">⚠️</span>
+                    <span>ATENCIÓN: PRODUCTO POR BLISTER</span>
+                </div>
+                <div class="product-grid">
+                    <div class="product-field">
+                        <div class="product-field-label">Producto</div>
+                        <div class="product-field-value" id="modalProductName"></div>
+                    </div>
+                    <div class="product-field">
+                        <div class="product-field-label">Código Molier</div>
+                        <div class="product-field-value" id="modalProductCode"></div>
+                    </div>
+                    <div class="product-field">
+                        <div class="product-field-label">Sync ID</div>
+                        <div class="product-field-value" id="modalProductSync"></div>
+                    </div>
+                    <div class="product-field">
+                        <div class="product-field-label">Presentación</div>
+                        <div class="product-field-value" id="modalProductUnit"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="quantity-input-group" style="flex: 1; max-width: 400px;">
+                    <input type="number" id="modalQuantityInput" placeholder="Cantidad a recibir" min="1">
+                    <button class="btn btn-success" onclick="addItemFromModal()">
+                        <span></span> Agregar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <div id="itemsCard" style="display: none;" class="card">
+            <div class="header-actions">
+                <div class="items-count">Recibidos <span id="itemsCount">0</span></div>
+                <div class="items-search-container">
+                    <input 
+                        type="text" 
+                        id="itemsSearchInput" 
+                        class="items-search-input" 
+                        placeholder="Buscar en productos recibidos..."
+                    >
+                    <button class="items-clear-search" id="itemsClearSearch" onclick="clearItemsSearch()">✕</button>
+                </div>
+               <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+    <div class="view-toggle">
+        <button class="view-btn active" data-view="cards" onclick="changeView('cards')">
+            🔲 Tarjetas
+        </button>
+        <button class="view-btn" data-view="list" onclick="changeView('list')">
+            📋 Lista
+        </button>
+    </div>
+    
+    <button class="btn btn-primary" onclick="printAllEANs()" title="Imprimir Códigos EAN">
+        <span>🖨️</span> EANs
+    </button>
+    <button class="btn btn-success" onclick="saveCurrentSession()" title="Guardar Sesión">
+        <span>💾</span> Guardar
+    </button>
+    <button class="btn btn-success" onclick="exportToCSV()" title="Descargar CSV">
+        <span>📄</span> CSV
+    </button>
+    <button class="btn btn-primary" onclick="exportToExcel()" title="Descargar Excel">
+        <span>📊</span> Excel
+    </button>
+</div> 
+                </div>
+            </div>
+            <div id="itemsContainer" class="items-container cards-view"></div>
+            <div id="itemsContainer" class="items-container cards-view"></div>
+            <div id="noResultsMessage" style="display: none; padding: 40px; text-align: center; color: #94a3b8;">
+                No se encontraron productos con ese criterio de búsqueda
+            </div>
+        </div>
+
+        <div id="emptyState" class="card">
+            <div class="empty-state">
+                <div class="empty-state-icon"></div>
+                <p>Carga tu catálogo de Excel para comenzar</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de EANs -->
+    <div id="labelsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Códigos EAN</h2>
+                <span class="close" onclick="closeLabelsModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="labelsPreview"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeLabelsModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="window.print()">
+                     Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Historial -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content" id="historyModalContent">
+            <div class="modal-header" id="historyModalHeader">
+                <h2>📋 Historial de Recepciones</h2>
+                <span class="close" onclick="closeHistoryModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="historyModalBody"></div>
+            <div class="modal-footer" id="historyModalFooter">
+                <button class="btn btn-danger" onclick="clearAllHistory()">
+                    🗑️ Limpiar Historial
+                </button>
+                <button class="btn btn-secondary" onclick="closeHistoryModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+let products = [];
+        let scannedItems = [];
+        let currentProduct = null;
+        let itemsSearchTerm = '';
+        let sessionHistory = [];
+        let barcodeTimeout = null;
+        let currentBulto = '';
+
+        const STORAGE_KEY = 'wms_full_autosave';
+        const HISTORY_KEY = 'wms_session_history';
+
+        // Cargar historial al inicio
+        loadSessionHistory();
+
+document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+        document.getElementById('barcodeInput').addEventListener('input', handleBarcodeSearch);
+        document.getElementById('nameSearch').addEventListener('input', handleNameSearch);
+        document.getElementById('itemsSearchInput').addEventListener('input', handleItemsSearch);
+        
+        // Event listener para el input de bulto
+        document.getElementById('bultoInput').addEventListener('input', handleBultoInput);
+        document.getElementById('bultoInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                confirmBulto();
+            }
+        });
+
+        document.getElementById('modalQuantityInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addItemFromModal();
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-wrapper')) {
+                document.getElementById('searchResults').style.display = 'none';
+            }
+        });
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    products = jsonData.map((row, index) => {
+                        const keys = Object.keys(row).map(k => k.trim().toLowerCase());
+                        const originalKeys = Object.keys(row);
+                        const values = Object.values(row);
+                        
+                        const codigoIdx = keys.findIndex(k => 
+                            k.includes('codigo') || k.includes('barras') ||
+                            k.includes('sku') || k.includes('ref')
+                        );
+                        const eanIdx = keys.findIndex(k => k === 'ean');
+                        
+                        console.log('Procesando fila:', {
+                            keys: keys,
+                            eanIdx: eanIdx,
+                            valorEAN: eanIdx >= 0 ? values[eanIdx] : 'NO ENCONTRADO',
+                            todasLasColumnas: originalKeys
+                        });
+                        const nombreIdx = keys.findIndex(k => 
+                            k.includes('nombre') || k.includes('producto') || k.includes('descripcion') ||
+                            k.includes('medicamento')
+                        );
+                        const syncIdx = keys.findIndex(k => 
+                            k.includes('sync') || k.includes('sinc') || k.includes('cum')
+                        );
+                        const unidadIdx = keys.findIndex(k => 
+                            k.includes('unidad') || k.includes('presentacion') || k.includes('empaque')
+                        );
+                        const bigTurboIdx = keys.findIndex(k => k.includes('big') && k.includes('turbo'));
+                        const chicoIdx = keys.findIndex(k => k === 'chico' || k.includes('chico'));
+                        const diamanteIdx = keys.findIndex(k => k.includes('diamante'));
+                        const oroIdx = keys.findIndex(k => k === 'oro' || k.includes('oro'));
+
+                        const productData = {
+                            id: index + 1,
+                            codigo: codigoIdx >= 0 ? String(values[codigoIdx] || '').trim() : '',
+                            ean: eanIdx >= 0 ? String(values[eanIdx] || '').trim() : '',
+                            nombre: nombreIdx >= 0 ? String(values[nombreIdx] || '').trim() : '',
+                            sync: syncIdx >= 0 ? String(values[syncIdx] || '').trim() : '',
+                            unidadVenta: unidadIdx >= 0 ? String(values[unidadIdx] || '').trim() : '',
+                            bigTurbo: bigTurboIdx >= 0 ? String(values[bigTurboIdx] || '').trim().toLowerCase() : '',
+                            chico: chicoIdx >= 0 ? String(values[chicoIdx] || '').trim().toLowerCase() : '',
+                            diamante: diamanteIdx >= 0 ? String(values[diamanteIdx] || '').trim().toLowerCase() : '',
+                            oro: oroIdx >= 0 ? String(values[oroIdx] || '').trim().toLowerCase() : '',
+                        };
+
+                        originalKeys.forEach((key, idx) => {
+                            const keyName = key.trim();
+                            if (!productData[keyName]) {
+                                productData[keyName] = String(values[idx] || '').trim();
+                            }
+                        });
+
+                        return productData;
+                    }).filter(p => p.codigo || p.nombre);
+
+document.getElementById('fileButtonText').textContent = `Archivo: ${file.name}`;
+                    document.getElementById('productsCount').textContent = `${products.length} productos cargados`;
+                    document.getElementById('fileSuccess').style.display = 'flex';
+                    document.getElementById('bultoSection').style.display = 'block';
+                    document.getElementById('emptyState').style.display = 'none';
+                    
+                    // Enfocar input de bulto
+                    setTimeout(() => {
+                        document.getElementById('bultoInput').focus();
+                    }, 300);
+                    
+                    // DEBUG: Mostrar los primeros 3 productos con sus EAN
+                    console.log('=== PRIMEROS 3 PRODUCTOS CARGADOS ===');
+                    products.slice(0, 3).forEach((p, i) => {
+                        console.log(`Producto ${i + 1}:`, {
+                            nombre: p.nombre,
+                            codigo: p.codigo,
+                            EAN: p.ean,
+                            todosLosCampos: Object.keys(p)
+                        });
+                    });
+                    
+                    saveFullState();
+                } catch (error) {
+                    alert('Error al procesar el archivo. Verifica que sea un Excel válido.');
+                    console.error(error);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+function handleBarcodeSearch(e) {
+    const value = e.target.value.trim();
+    
+    // Limpiar timeout anterior
+    if (barcodeTimeout) {
+        clearTimeout(barcodeTimeout);
+    }
+    
+    if (value === '') {
+        document.getElementById('productCard').style.display = 'none';
+        currentProduct = null;
+        return;
+    }
+
+    // Esperar 500ms después de que el usuario deje de escribir
+    barcodeTimeout = setTimeout(() => {
+        const found = products.find(p => {
+            if (p.codigo && p.codigo.toLowerCase() === value.toLowerCase()) {
+                return true;
+            }
+            if (p.ean && p.ean.toLowerCase() === value.toLowerCase()) {
+                return true;
+            }
+            const rowData = Object.values(p).join('|').toLowerCase();
+            return rowData.includes(value.toLowerCase());
+        });
+
+        if (found) {
+            showProduct(found);
+            setTimeout(() => {
+                document.getElementById('barcodeInput').value = '';
+            }, 100);
+        }
+    }, 100); // Espera 100ms después de la última tecla
+}
+
+        function handleNameSearch(e) {
+            const value = e.target.value.toLowerCase().trim();
+            const resultsDiv = document.getElementById('searchResults');
+            
+            if (value.length < 3) {
+                resultsDiv.style.display = 'none';
+                return;
+            }
+
+            const results = products.filter(p => 
+                (p.nombre && p.nombre.toLowerCase().includes(value)) || 
+                (p.codigo && p.codigo.toLowerCase().includes(value))
+            ).slice(0, 10);
+
+            if (results.length > 0) {
+                resultsDiv.innerHTML = '';
+                results.forEach(product => {
+                    const div = document.createElement('div');
+                    div.className = 'search-result-item';
+                    div.innerHTML = `
+                        <div class="search-result-name">${product.nombre || 'Sin nombre'}</div>
+                        <div class="search-result-details">
+                            <span>Código: ${product.codigo || 'N/A'}</span>
+                            ${product.sync ? `<span>• Sync: ${product.sync}</span>` : ''}
+                        </div>
+                    `;
+                    div.onclick = () => {
+                        showProduct(product);
+                        resultsDiv.style.display = 'none';
+                        document.getElementById('nameSearch').value = '';
+                    };
+                    resultsDiv.appendChild(div);
+                });
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.style.display = 'none';
+            }
+        }
+
+        function showProduct(product) {
+            currentProduct = product;
+            
+            // Actualizar modal
+            document.getElementById('modalProductName').textContent = product.nombre || 'Sin nombre';
+            document.getElementById('modalProductCode').textContent = product.codigo || 'Sin código';
+            document.getElementById('modalProductSync').textContent = product.sync || '-';
+            document.getElementById('modalProductUnit').textContent = product.unidadVenta || '-';
+            
+            // DEBUG: Verificar que el EAN se esté capturando
+            console.log('Producto seleccionado:', {
+                nombre: product.nombre,
+                codigo: product.codigo,
+                ean: product.ean,
+                todosLosDatos: product
+            });
+            
+            // Manejar Badges de programas
+            const badgesContainer = document.getElementById('modalProgramBadges');
+            badgesContainer.innerHTML = '';
+            let hasBadges = false;
+
+            if (product.chico === 'si' || product.chico === 'x') {
+                badgesContainer.innerHTML += `<div class="program-badge program-chico">🧢 CHICO</div>`;
+                hasBadges = true;
+            }
+            if (product.bigTurbo === 'si' || product.bigTurbo === 'x') {
+                badgesContainer.innerHTML += `<div class="program-badge program-bigturbo">🚀 BIG TURBO</div>`;
+                hasBadges = true;
+            }
+            if (product.diamante === 'si' || product.diamante === 'x') {
+                badgesContainer.innerHTML += `<div class="program-badge program-diamante">💎 DIAMANTE</div>`;
+                hasBadges = true;
+            }
+            if (product.oro === 'si' || product.oro === 'x') {
+                badgesContainer.innerHTML += `<div class="program-badge program-oro">🏆 ORO</div>`;
+                hasBadges = true;
+            }
+
+            badgesContainer.style.display = hasBadges ? 'flex' : 'none';
+
+            // Comprobar si es blister
+            const isBlister = (product.unidadVenta && product.unidadVenta.toLowerCase().includes('blister')) ||
+                             (product.nombre && product.nombre.toLowerCase().includes('blister'));
+            
+            const modal = document.getElementById('productModal');
+            const warning = document.getElementById('modalBlisterWarning');
+            
+            if (isBlister) {
+                modal.classList.add('blister');
+                warning.style.display = 'flex';
+            } else {
+                modal.classList.remove('blister');
+                warning.style.display = 'none';
+            }
+
+            // Mostrar modal
+            modal.style.display = 'block';
+            
+            // Enfocar input de cantidad
+            setTimeout(() => {
+                document.getElementById('modalQuantityInput').focus();
+            }, 100);
+        }
+
+        function closeProductModal() {
+            document.getElementById('productModal').style.display = 'none';
+            document.getElementById('modalQuantityInput').value = '';
+            currentProduct = null;
+        }
+
+ // BUSCA ESTA FUNCIÓN (alrededor de la línea 450):
+function addItemFromModal() {
+    if (!currentProduct) return;
+    // ... código antiguo
+}
+
+// REEMPLÁZALA CON:
+function addItemFromModal() {
+    if (!currentProduct) return;
+    
+    const quantityInput = document.getElementById('modalQuantityInput');
+    const quantity = parseInt(quantityInput.value);
+    
+    if (!quantity || quantity <= 0) {
+        alert('Por favor ingresa una cantidad válida');
+        return;
+    }
+
+    const timestamp = new Date();
+    const timeString = timestamp.toLocaleTimeString();
+
+    // Buscar si ya existe el producto
+    const existingItemIndex = scannedItems.findIndex(item => 
+        item.codigo === currentProduct.codigo || 
+        (item.nombre === currentProduct.nombre && item.sync === currentProduct.sync)
+    );
+
+    if (existingItemIndex !== -1) {
+        // Si existe, sumar la cantidad
+        scannedItems[existingItemIndex].cantidad += quantity;
+        scannedItems[existingItemIndex].timeString = timeString;
+        
+        updateItemsList();
+        showFloatingAlert(`✅ +${quantity} agregado a "${currentProduct.nombre}"`, scannedItems[existingItemIndex].id);
+        highlightItem(scannedItems[existingItemIndex].id);
+  } else {
+                // Si no existe, crear nuevo
+                const item = {
+                    ...currentProduct,
+                    cantidad: quantity,
+                    timestamp: timestamp,
+                    timeString: timeString,
+                    isDuplicate: false,
+                    id: Date.now(),
+                    bulto: currentBulto
+                };
+
+                scannedItems.unshift(item);
+                updateItemsList();
+            }
+    
+    closeProductModal();
+    document.getElementById('barcodeInput').focus();
+}
+
+        function addItem() {
+            if (!currentProduct) return;
+            
+            const quantityInput = document.getElementById('quantityInput');
+            const quantity = parseInt(quantityInput.value);
+            
+            if (!quantity || quantity <= 0) {
+                alert('Por favor ingresa una cantidad válida');
+                return;
+            }
+
+            const timestamp = new Date();
+            const timeString = timestamp.toLocaleTimeString();
+
+            const isDuplicate = scannedItems.some(item => 
+                item.codigo === currentProduct.codigo || 
+                (item.nombre === currentProduct.nombre && item.sync === currentProduct.sync)
+            );
+
+            const item = {
+                ...currentProduct,
+                cantidad: quantity,
+                timestamp: timestamp,
+                timeString: timeString,
+                isDuplicate: isDuplicate,
+                id: Date.now()
+            };
+
+            scannedItems.unshift(item);
+            updateItemsList();
+            
+            quantityInput.value = '';
+            document.getElementById('productCard').style.display = 'none';
+            document.getElementById('barcodeInput').focus();
+            currentProduct = null;
+        }
+
+let currentView = 'cards'; // Agregar esta variable al inicio con las demás
+
+function changeView(view) {
+    currentView = view;
+    const container = document.getElementById('itemsContainer');
+    const buttons = document.querySelectorAll('.view-btn');
+    
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.view === view) {
+            btn.classList.add('active');
+        }
+    });
+    
+    if (view === 'cards') {
+        container.classList.remove('list-view');
+        container.classList.add('cards-view');
+    } else {
+        container.classList.remove('cards-view');
+        container.classList.add('list-view');
+    }
+    
+    updateItemsList();
+}
+
+function updateItemsList() {
+    const container = document.getElementById('itemsContainer');
+    const itemsCard = document.getElementById('itemsCard');
+    
+    if (scannedItems.length > 0) {
+        itemsCard.style.display = 'block';
+        document.getElementById('itemsCount').textContent = scannedItems.length;
+    } else {
+        itemsCard.style.display = 'none';
+        return;
+    }
+
+    const filteredItems = itemsSearchTerm 
+        ? scannedItems.filter(item => 
+            (item.nombre && item.nombre.toLowerCase().includes(itemsSearchTerm)) || 
+            (item.codigo && item.codigo.toLowerCase().includes(itemsSearchTerm)) ||
+            (item.sync && item.sync.toLowerCase().includes(itemsSearchTerm))
+          )
+        : scannedItems;
+
+    const noResultsMsg = document.getElementById('noResultsMessage');
+    if (filteredItems.length === 0 && itemsSearchTerm) {
+        noResultsMsg.style.display = 'block';
+        container.innerHTML = '';
+    } else {
+        noResultsMsg.style.display = 'none';
+        container.innerHTML = filteredItems.map(item => `
+            <div class="item-card ${item.isDuplicate ? 'duplicate' : ''}" id="item-${item.id}">
+                ${item.isDuplicate ? `
+                    <div class="duplicate-warning">
+                        <span>⚠️</span> Posible Duplicado
+                    </div>
+                ` : ''}
+                ${item.bulto ? `
+                    <div class="item-bulto-badge">
+                        <span>📦</span> ${item.bulto}
+                    </div>
+                ` : ''}
+                <div class="item-content">
+                    <div>
+                        <div class="item-field-label">Producto</div>
+                        <div class="item-value">${item.nombre || 'Sin nombre'}</div>
+                        <div style="font-size: 12px; color: #666; margin-top: 4px;">
+                            ${item.codigo ? `Code: ${item.codigo}` : ''} 
+                            ${item.sync ? `| Sync: ${item.sync}` : ''}
+                        </div>
+                    </div>
+                    <div>
+                        <div class="item-field-label">Unidad</div>
+                        <div class="item-value">${item.unidadVenta || '-'}</div>
+                    </div>
+                    <div class="item-quantity-wrapper">
+                        <div class="item-field-label" style="text-align: right;">Cantidad</div>
+                        <div class="item-quantity" id="qty-display-${item.id}">${item.cantidad}</div>
+                        <div class="item-quantity-editable" id="qty-edit-${item.id}" style="display: none;">
+                            <input type="number" class="item-quantity-input" id="qty-input-${item.id}" value="${item.cantidad}" min="1">
+                        </div>
+                    </div>
+                </div>
+                <div class="item-actions">
+                    <div class="item-timestamp">🕒 ${item.timeString}</div>
+                    
+                    <button class="btn-print" onclick="printSingleEAN(${item.id})">
+                        📊 EAN
+                    </button>
+                    <button class="btn-edit" id="btn-edit-${item.id}" onclick="toggleEdit(${item.id})">
+                        ✏️ Editar
+                    </button>
+                    <button class="btn-save" id="btn-save-${item.id}" onclick="saveEdit(${item.id})" style="display: none;">
+                        💾 Guardar
+                    </button>
+                    <button class="btn-cancel" id="btn-cancel-${item.id}" onclick="cancelEdit(${item.id})" style="display: none;">
+                        ❌ Cancelar
+                    </button>
+
+                    <button class="btn-delete" onclick="deleteItem(${item.id})">
+                        🗑️ Eliminar
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    saveFullState();
+}
+
+        function toggleEdit(id) {
+            document.getElementById(`qty-display-${id}`).style.display = 'none';
+            document.getElementById(`qty-edit-${id}`).style.display = 'flex';
+            document.getElementById(`btn-edit-${id}`).style.display = 'none';
+            document.getElementById(`btn-save-${id}`).style.display = 'flex';
+            document.getElementById(`btn-cancel-${id}`).style.display = 'flex';
+            
+            setTimeout(() => {
+                document.getElementById(`qty-input-${id}`).focus();
+                document.getElementById(`qty-input-${id}`).select();
+            }, 50);
+        }
+
+        function cancelEdit(id) {
+            document.getElementById(`qty-display-${id}`).style.display = 'block';
+            document.getElementById(`qty-edit-${id}`).style.display = 'none';
+            document.getElementById(`btn-edit-${id}`).style.display = 'flex';
+            document.getElementById(`btn-save-${id}`).style.display = 'none';
+            document.getElementById(`btn-cancel-${id}`).style.display = 'none';
+            
+            const item = scannedItems.find(i => i.id === id);
+            if (item) {
+                document.getElementById(`qty-input-${id}`).value = item.cantidad;
+            }
+        }
+
+        function saveEdit(id) {
+            const newQty = parseInt(document.getElementById(`qty-input-${id}`).value);
+            if (!newQty || newQty <= 0) {
+                alert('La cantidad debe ser mayor a 0');
+                return;
+            }
+
+            const itemIndex = scannedItems.findIndex(i => i.id === id);
+            if (itemIndex !== -1) {
+                scannedItems[itemIndex].cantidad = newQty;
+                updateItemsList();
+            }
+        }
+
+        function deleteItem(id) {
+            if (confirm('¿Estás seguro de eliminar este ítem?')) {
+                scannedItems = scannedItems.filter(item => item.id !== id);
+                updateItemsList();
+            }
+        }
+
+        function handleItemsSearch(e) {
+            itemsSearchTerm = e.target.value.toLowerCase().trim();
+            
+            const clearBtn = document.getElementById('itemsClearSearch');
+            if (itemsSearchTerm) {
+                clearBtn.classList.add('visible');
+            } else {
+                clearBtn.classList.remove('visible');
+            }
+            
+            updateItemsList();
+        }
+
+        function clearItemsSearch() {
+            document.getElementById('itemsSearchInput').value = '';
+            itemsSearchTerm = '';
+            document.getElementById('itemsClearSearch').classList.remove('visible');
+            updateItemsList();
+        }
+
+function exportToCSV() {
+    if (scannedItems.length === 0) {
+        alert('No hay items para exportar');
+        return;
+    }
+
+    // Calcular fecha actual + 1 día en formato DD-MM-YYYY
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const day = String(tomorrow.getDate()).padStart(2, '0');
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const year = tomorrow.getFullYear();
+    const expectedDate = `${day}-${month}-${year}`;
+
+    const headers = ['INGRESS_ORDER_EXTERNAL_ID', 'PRODUCT_EXTERNAL_ID', 'QUANTITY', 'UNIT_COST', 'UNIT_IVA', 'EXPECTED_AT'];
+    const csvContent = [
+        headers.join(','),
+        ...scannedItems.map(item => [
+            `"${item.bulto || 'N/A'}"`,
+            `"${item.sync || ''}"`,
+            item.cantidad,
+            1,
+            0,
+            `"${expectedDate}"`
+        ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `recepcion_wms_${new Date().toISOString().slice(0,10)}.csv`;
+    link.click();
+}
+
+function exportToExcel() {
+    if (scannedItems.length === 0) {
+        alert('No hay items para exportar');
+        return;
+    }
+
+    // Calcular fecha actual + 1 día en formato DD-MM-YYYY
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const day = String(tomorrow.getDate()).padStart(2, '0');
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const year = tomorrow.getFullYear();
+    const expectedDate = `${day}-${month}-${year}`;
+
+    const data = scannedItems.map(item => ({
+        'INGRESS_ORDER_EXTERNAL_ID': item.bulto || 'N/A',
+        'PRODUCT_EXTERNAL_ID': item.sync || '',
+        'QUANTITY': item.cantidad,
+        'UNIT_COST': 1,
+        'UNIT_IVA': 0,
+        'EXPECTED_AT': expectedDate
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Recepción");
+    XLSX.writeFile(wb, `recepcion_wms_${new Date().toISOString().slice(0,10)}.xlsx`);
+
+const headers = ['Bulto', 'Nombre', 'Código', 'Sync', 'Unidad Venta', 'Cantidad', 'Hora Recepción'];
+            const csvContent = [
+                headers.join(','),
+                ...scannedItems.map(item => [
+                    `"${item.bulto || 'N/A'}"`,
+                    `"${item.nombre || ''}"`,
+                    `"${item.codigo || ''}"`,
+                    `"${item.sync || ''}"`,
+                    `"${item.unidadVenta || ''}"`,
+                    item.cantidad,
+                    item.timeString
+                ].join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `recepcion_wms_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+
+        function exportToExcel() {
+            if (scannedItems.length === 0) {
+                alert('No hay items para exportar');
+                return;
+            }
+const data = scannedItems.map(item => ({
+                'Bulto': item.bulto || 'N/A',
+                'Nombre del Producto': item.nombre,
+                'Código / EAN': item.codigo,
+                'Sync / CUM': item.sync,
+                'Unidad de Venta': item.unidadVenta,
+                'Cantidad Recibida': item.cantidad,
+                'Hora de Escaneo': item.timeString,
+                'Es Duplicado': item.isDuplicate ? 'Sí' : 'NO'
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Recepción");
+            XLSX.writeFile(wb, `recepcion_wms_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+
+        // ===== FUNCIONES DE IMPRESIÓN DE EANs =====
+        function printAllEANs() {
+            if (scannedItems.length === 0) {
+                alert('No hay productos para imprimir códigos EAN');
+                return;
+            }
+
+            const preview = document.getElementById('labelsPreview');
+            preview.innerHTML = '<div class="label-preview">' + 
+                scannedItems.map(item => generateEANHTML(item)).join('') + 
+                '</div>';
+            
+            document.getElementById('labelsModal').style.display = 'block';
+        }
+
+        function closeLabelsModal() {
+            document.getElementById('labelsModal').style.display = 'none';
+        }
+
+        function printSingleEAN(id) {
+            const item = scannedItems.find(i => i.id === id);
+            if (!item) return;
+
+            const preview = document.getElementById('labelsPreview');
+            preview.innerHTML = '<div class="label-preview">' + generateEANHTML(item) + '</div>';
+            
+            document.getElementById('labelsModal').style.display = 'block';
+        }
+
+function generateEANHTML(item) {
+    // SOLO usar el campo EAN, no el codigo
+    const eanCode = item.ean;
+    
+    // DEBUG - Verificar qué se está recibiendo
+    console.log('=== IMPRIMIENDO EAN ===');
+    console.log('Item completo:', item);
+    console.log('EAN del item:', item.ean);
+    console.log('Codigo del item:', item.codigo);
+    console.log('EAN a imprimir:', eanCode);
+    
+    if (!eanCode || eanCode === '' || eanCode === 'undefined') {
+        return `
+            <div class="label-item">
+                <div class="label-header">${item.nombre || 'Sin nombre'}</div>
+                <div style="padding: 40px; text-align: center; color: red; font-weight: bold;">
+                    ⚠️ ESTE PRODUCTO NO TIENE EAN EN LA COLUMNA "EAN"
+                </div>
+            </div>
+        `;
+    }
+    
+    // Generar ID único para este código de barras
+    const barcodeId = `barcode-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Usar setTimeout para generar el código después de que el HTML se renderice
+    setTimeout(() => {
+        try {
+            JsBarcode(`#${barcodeId}`, eanCode, {
+                format: "CODE128",
+                width: 2,
+                height: 80,
+                displayValue: true,
+                fontSize: 16,
+                margin: 10,
+                background: "#ffffff",
+                lineColor: "#000000"
+            });
+        } catch (error) {
+            console.error('Error generando código de barras:', error);
+            document.getElementById(barcodeId).innerHTML = `
+                <div style="padding: 20px; color: red; font-weight: bold;">
+                    ⚠️ ERROR AL GENERAR CÓDIGO DE BARRAS
+                </div>
+            `;
+        }
+    }, 100);
+    
+    return `
+        <div class="label-item">
+            <div class="label-header">${item.nombre || 'Sin nombre'}</div>
+            <div class="label-barcode">
+                <svg id="${barcodeId}"></svg>
+            </div>
+        </div>
+    `;
+}
+        // Generar representación visual del código de barras
+        function generateBarcodeVisual(code) {
+            // Asegurar que el código tenga dígitos
+            const cleanCode = String(code).replace(/[^0-9]/g, '');
+            
+            // DEBUG
+            console.log('Generando código de barras para:', code, '-> Limpio:', cleanCode);
+            
+            if (!cleanCode || cleanCode === '0') {
+                return '<div style="padding: 20px; color: red; font-weight: bold;">⚠️ SIN EAN</div>';
+            }
+            
+            // Patrón simplificado de barras basado en los dígitos
+            const patterns = {
+                '0': ['thin', 'space', 'thin', 'space', 'thick'],
+                '1': ['thick', 'space', 'thin', 'space', 'thin'],
+                '2': ['thin', 'space', 'thick', 'space', 'thin'],
+                '3': ['thick', 'space', 'thick', 'space', 'thin'],
+                '4': ['thin', 'space', 'thin', 'space', 'thick'],
+                '5': ['thick', 'space', 'thin', 'space', 'thick'],
+                '6': ['thin', 'space', 'thick', 'space', 'thick'],
+                '7': ['thin', 'space', 'thin', 'space', 'medium'],
+                '8': ['thick', 'space', 'thin', 'space', 'medium'],
+                '9': ['thin', 'space', 'thick', 'space', 'medium']
+            };
+
+            let barsHTML = '<div class="barcode-bar thick"></div><div class="barcode-bar space"></div>';
+            
+            for (let digit of cleanCode) {
+                const pattern = patterns[digit] || patterns['0'];
+                pattern.forEach(barType => {
+                    barsHTML += `<div class="barcode-bar ${barType}"></div>`;
+                });
+            }
+            
+            barsHTML += '<div class="barcode-bar space"></div><div class="barcode-bar thick"></div>';
+            
+            return barsHTML;
+        }
+
+        // ===== FUNCIONES DE HISTORIAL =====
+        function saveCurrentSession() {
+            if (scannedItems.length === 0) {
+                alert('No hay items para guardar');
+                return;
+            }
+
+            const sessionName = prompt('Nombre de la sesión:', `Recepción ${new Date().toLocaleDateString()}`);
+            if (!sessionName) return;
+
+            const session = {
+                id: Date.now(),
+                name: sessionName,
+                date: new Date().toISOString(),
+                items: [...scannedItems],
+                totalItems: scannedItems.length,
+                totalQuantity: scannedItems.reduce((sum, item) => sum + item.cantidad, 0)
+            };
+
+            sessionHistory.unshift(session);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(sessionHistory));
+            
+            alert(`Sesión "${sessionName}" guardada exitosamente con ${session.totalItems} productos`);
+        }
+
+        function loadSessionHistory() {
+            const saved = localStorage.getItem(HISTORY_KEY);
+            if (saved) {
+                try {
+                    sessionHistory = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Error cargando historial', e);
+                    sessionHistory = [];
+                }
+            }
+        }
+
+        function openHistoryModal() {
+            const historyList = document.getElementById('historyModalBody');
+            
+            if (sessionHistory.length === 0) {
+                historyList.innerHTML = '<div class="empty-state"><p>No hay sesiones guardadas</p></div>';
+            } else {
+                historyList.innerHTML = sessionHistory.map(session => `
+                    <div class="history-item">
+                        <div class="history-header">
+                            <div class="history-date">📦 ${session.name}</div>
+                            <div class="history-stats">
+                                <span>📅 ${new Date(session.date).toLocaleDateString()}</span>
+                                <span>📊 ${session.totalItems} productos</span>
+                                <span>📦 ${session.totalQuantity} unidades</span>
+                            </div>
+                        </div>
+                        <div class="history-actions">
+                            <button class="btn btn-primary" onclick="loadSession(${session.id})">
+                                📂 Cargar Sesión
+                            </button>
+                            <button class="btn btn-success" onclick="exportSessionToExcel(${session.id})">
+                                📊 Exportar Excel
+                            </button>
+                            <button class="btn btn-danger" onclick="deleteSession(${session.id})">
+                                🗑️ Eliminar
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            document.getElementById('historyModal').style.display = 'block';
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').style.display = 'none';
+        }
+
+        function loadSession(sessionId) {
+            const session = sessionHistory.find(s => s.id === sessionId);
+            if (!session) return;
+
+            if (scannedItems.length > 0) {
+                if (!confirm('¿Cargar esta sesión reemplazará los items actuales. Continuar?')) {
+                    return;
+                }
+            }
+
+            scannedItems = session.items.map(item => ({
+                ...item,
+                id: Date.now() + Math.random() // Nuevo ID para evitar conflictos
+            }));
+            
+            updateItemsList();
+            closeHistoryModal();
+            
+            alert(`Sesión "${session.name}" cargada con ${session.totalItems} productos`);
+        }
+
+        function deleteSession(sessionId) {
+            if (!confirm('¿Eliminar esta sesión del historial?')) return;
+
+            sessionHistory = sessionHistory.filter(s => s.id !== sessionId);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(sessionHistory));
+            openHistoryModal(); // Refrescar la vista
+        }
+
+        function clearAllHistory() {
+            if (!confirm('¿Eliminar TODAS las sesiones guardadas? Esta acción no se puede deshacer.')) return;
+
+            sessionHistory = [];
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(sessionHistory));
+            openHistoryModal();
+        }
+
+        function exportSessionToExcel(sessionId) {
+            const session = sessionHistory.find(s => s.id === sessionId);
+            if (!session) return;
+
+            const data = session.items.map(item => ({
+                'Nombre del Producto': item.nombre,
+                'Código / EAN': item.codigo,
+                'Sync / CUM': item.sync,
+                'Unidad de Venta': item.unidadVenta,
+                'Cantidad Recibida': item.cantidad,
+                'Hora de Escaneo': item.timeString
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Recepción");
+            XLSX.writeFile(wb, `${session.name.replace(/\s+/g, '_')}.xlsx`);
+        }
+
+        // ===== AUTOGUARDADO =====
+// ===== AUTOGUARDADO =====
+function saveFullState() {
+    const state = {
+        products,
+        scannedItems,
+        currentBulto,
+        ui: {
+            searchVisible: document.getElementById('searchSection')?.style.display === 'block',
+            itemsVisible: document.getElementById('itemsCard')?.style.display === 'block',
+            bultoVisible: document.getElementById('bultoSection')?.style.display === 'block',
+            bultoConfirmed: document.getElementById('bultoDisplay')?.style.display === 'flex'
+        }
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function loadFullState() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (!saved) return;
+
+    try {
+        const state = JSON.parse(saved);
+
+        if (Array.isArray(state.products) && state.products.length > 0) {
+            products = state.products;
+            document.getElementById('searchSection').style.display = 'block';
+            document.getElementById('bultoSection').style.display = 'block';
+            document.getElementById('emptyState').style.display = 'none';
+        }
+
+        if (Array.isArray(state.scannedItems)) {
+            scannedItems = state.scannedItems;
+            updateItemsList();
+        }
+
+        // Restaurar bulto
+        if (state.currentBulto) {
+            currentBulto = state.currentBulto;
+            document.getElementById('bultoValue').textContent = currentBulto;
+            
+            // Si el bulto estaba confirmado, mostrarlo
+            if (state.ui?.bultoConfirmed) {
+                const bultoCard = document.querySelector('.bulto-card');
+                if (bultoCard) {
+                    bultoCard.classList.add('compact');
+                }
+                document.getElementById('bultoDisplay').style.display = 'flex';
+                document.getElementById('bultoInput').parentElement.style.display = 'none';
+            }
+        }
+
+        if (state.ui?.itemsVisible) {
+            document.getElementById('itemsCard').style.display = 'block';
+        }
+
+        if (state.ui?.bultoVisible) {
+            document.getElementById('bultoSection').style.display = 'block';
+        }
+
+        document.getElementById('fileButtonText').textContent = 'Archivo restaurado automáticamente';
+        document.getElementById('productsCount').textContent = `${products.length} productos restaurados`;
+        document.getElementById('fileSuccess').style.display = 'flex';
+
+    } catch (e) {
+        console.error('Error restaurando estado guardado', e);
+        localStorage.removeItem(STORAGE_KEY);
+    }
+}
+// Función para limpiar todo e iniciar nueva recepción
+function clearAllAndRestart() {
+    const confirmMessage = scannedItems.length > 0 
+        ? `¿Estás seguro de limpiar todo?\n\nSe perderán ${scannedItems.length} productos escaneados si no los has guardado en el historial.`
+        : '¿Limpiar la aplicación e iniciar una nueva recepción?';
+    
+    if (!confirm(confirmMessage)) return;
+
+    // Limpiar todos los datos
+    products = [];
+    scannedItems = [];
+    currentProduct = null;
+    itemsSearchTerm = '';
+    currentBulto = '';
+
+    // Limpiar localStorage
+    localStorage.removeItem(STORAGE_KEY);
+
+    // Reset UI - Inputs
+    document.getElementById('fileInput').value = '';
+    document.getElementById('barcodeInput').value = '';
+    document.getElementById('nameSearch').value = '';
+    document.getElementById('quantityInput').value = '';
+    document.getElementById('itemsSearchInput').value = '';
+    document.getElementById('bultoInput').value = '';
+
+    // Reset UI - Textos
+    document.getElementById('fileButtonText').textContent = 'Cargar Catálogo de Excel';
+    document.getElementById('productsCount').textContent = '';
+
+    // Resetear tarjeta de bulto
+    const bultoCard = document.querySelector('.bulto-card');
+    if (bultoCard) {
+        bultoCard.classList.remove('compact');
+    }
+    
+    // Limpiar contenedor de items
+    const itemsContainer = document.getElementById('itemsContainer');
+    if (itemsContainer) {
+        itemsContainer.innerHTML = '';
+    }
+
+    // Ocultar secciones
+    document.getElementById('fileSuccess').style.display = 'none';
+    document.getElementById('bultoSection').style.display = 'none';
+    document.getElementById('searchSection').style.display = 'none';
+    document.getElementById('productCard').style.display = 'none';
+    document.getElementById('itemsCard').style.display = 'none';
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('itemsClearSearch').classList.remove('visible');
+    document.getElementById('bultoClearBtn').style.display = 'none';
+    document.getElementById('bultoDisplay').style.display = 'none';
+    document.getElementById('bultoInput').parentElement.style.display = 'flex';
+
+    // Mostrar estado vacío
+    document.getElementById('emptyState').style.display = 'block';
+
+    // Mensaje de confirmación
+    alert('✔ Aplicación reiniciada correctamente\n\nPuedes comenzar una nueva recepción cargando un nuevo catálogo.');
+    
+    console.log('🔄 Aplicación reiniciada - Todo limpio');
+}
+
+        // Cerrar modales al hacer clic fuera
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+                // Limpiar si es el modal de producto
+                if (event.target.id === 'productModal') {
+                    closeProductModal();
+                }
+            }
+        }
+
+        // Restaurar al iniciar
+        window.addEventListener('load', () => {
+            loadFullState();
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+        });
+
+// Guardar antes de cerrar
+        window.addEventListener('beforeunload', saveFullState);
+
+        // Funciones para manejo de bulto
+        function handleBultoInput(e) {
+            const value = e.target.value.trim();
+            const clearBtn = document.getElementById('bultoClearBtn');
+            
+            if (value.length > 0) {
+                clearBtn.style.display = 'flex';
+            } else {
+                clearBtn.style.display = 'none';
+            }
+        }
+
+function confirmBulto() {
+    const bultoInput = document.getElementById('bultoInput');
+    const bultoCard = document.querySelector('.bulto-card');
+    const value = bultoInput.value.trim();
+    
+    if (!value) {
+        alert('Por favor ingresa un número de bulto');
+        return;
+    }
+    
+    const previousBulto = currentBulto;
+    currentBulto = value;
+    
+    // Si hay items recibidos y se está cambiando el bulto
+    if (scannedItems.length > 0 && previousBulto !== '') {
+        const confirmUpdate = confirm(
+            `¿Deseas actualizar el bulto de los ${scannedItems.length} productos ya recibidos?\n\n` +
+            `De: "${previousBulto}"\n` +
+            `A: "${currentBulto}"`
+        );
+        
+        if (confirmUpdate) {
+            // Actualizar el bulto en todos los items
+            scannedItems.forEach(item => {
+                item.bulto = currentBulto;
+            });
+            updateItemsList();
+            showFloatingAlert(`✅ Bulto actualizado en ${scannedItems.length} productos`);
+        }
+    }
+    
+    // Mostrar el bulto actual
+    document.getElementById('bultoValue').textContent = currentBulto;
+    document.getElementById('bultoDisplay').style.display = 'flex';
+    
+    // Hacer la tarjeta más compacta
+    bultoCard.classList.add('compact');
+    
+    // Ocultar input y mostrar sección de búsqueda
+    bultoInput.parentElement.style.display = 'none';
+    document.getElementById('searchSection').style.display = 'block';
+    
+    // Enfocar el input de código de barras
+    setTimeout(() => {
+        document.getElementById('barcodeInput').focus();
+    }, 100);
+    
+    saveFullState();
+}
+
+        function editBulto() {
+            const bultoInput = document.getElementById('bultoInput');
+            const bultoCard = document.querySelector('.bulto-card');
+            
+            bultoInput.parentElement.style.display = 'flex';
+            document.getElementById('bultoDisplay').style.display = 'none';
+            
+            // Restaurar tamaño completo de la tarjeta
+            bultoCard.classList.remove('compact');
+            
+            setTimeout(() => {
+                bultoInput.focus();
+                bultoInput.select();
+            }, 100);
+        }
+
+        function clearBulto() {
+            document.getElementById('bultoInput').value = '';
+            document.getElementById('bultoClearBtn').style.display = 'none';
+            document.getElementById('bultoInput').focus();
+        }
+
+        // Función para mostrar alerta flotante
+
+        
+const buttons = document.querySelectorAll('.view-btn');
+const container = document.getElementById('itemsContainer');
+
+buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        if (btn.dataset.view === 'list') {
+            container.classList.remove('cards-view');
+            container.classList.add('list-view');
+        } else {
+            container.classList.remove('list-view');
+            container.classList.add('cards-view');
+        }
+    });
+});
+
+// Función para mostrar alerta flotante
+function showFloatingAlert(message, itemId) {
+    const alert = document.createElement('div');
+    alert.className = 'floating-alert';
+    alert.innerHTML = `
+        <div class="floating-alert-content">
+            <span class="floating-alert-icon">📦</span>
+            <span class="floating-alert-text">${message}</span>
+        </div>
+    `;
+    document.body.appendChild(alert);
+    
+    setTimeout(() => {
+        alert.classList.add('show');
+    }, 100);
+    
+    setTimeout(() => {
+        alert.classList.remove('show');
+        setTimeout(() => {
+            alert.remove();
+        }, 300);
+    }, 3000);
+    
+    // Si hay itemId, resaltar el item
+    if (itemId) {
+        highlightItem(itemId);
+    }
+}
+
+// Función para resaltar el item actualizado
+function highlightItem(itemId) {
+    const itemCard = document.getElementById(`item-${itemId}`);
+    if (!itemCard) return;
+    
+    itemCard.classList.add('highlight-pulse');
+    
+    // Scroll suave hacia el elemento
+    itemCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    setTimeout(() => {
+        itemCard.classList.remove('highlight-pulse');
+    }, 5000);
+}
+</script>
+    </script>
+</body>
+<link rel="stylesheet" href="style.css">
+</html>
