@@ -64,10 +64,11 @@
                             ✕
                         </button>
                     </div>
-                    <div class="bulto-current" id="bultoDisplay" style="display: none;">
-                        <span class="bulto-label">Bulto actual:</span>
-                        <span class="bulto-value" id="bultoValue"></span>
-                        <button class="btn-bulto-edit" onclick="editBulto()">✏️ Cambiar</button>
+                        <div class="bulto-current" id="bultoDisplay" style="display: none;">
+                        <div class="bulto-current-badge" id="bultoValue"></div>
+                        <button class="btn-bulto-edit" onclick="editBulto()">
+                            ✏️ Editar
+                        </button>
                     </div>
                 </div>
             </div>
@@ -253,7 +254,7 @@
         </div>
     </div>
 
-    <!-- Modal de Historial -->
+<!-- Modal de Historial -->
     <div id="historyModal" class="modal">
         <div class="modal-content" id="historyModalContent">
             <div class="modal-header" id="historyModalHeader">
@@ -270,6 +271,71 @@
         </div>
     </div>
 
+    <!-- Asistente IA Flotante -->
+    <div id="aiAssistant" class="ai-assistant">
+        <div class="ai-header">
+            <div class="ai-header-left">
+                <div class="ai-avatar">🤖</div>
+                <div class="ai-title">
+                    <h3>Asistente IA</h3>
+                    <span class="ai-status" id="aiStatus">En línea</span>
+                </div>
+            </div>
+            <div class="ai-header-actions">
+                <button class="ai-btn-minimize" onclick="toggleAIAssistant()" title="Minimizar">−</button>
+                <button class="ai-btn-close" onclick="closeAIAssistant()" title="Cerrar">✕</button>
+            </div>
+        </div>
+        
+        <div class="ai-body" id="aiChatBody">
+            <div class="ai-message ai-message-assistant">
+                <div class="ai-message-avatar">🤖</div>
+                <div class="ai-message-content">
+                    <p>¡Hola! Soy tu asistente de IA. Puedo ayudarte con:</p>
+                    <ul>
+                        <li>📊 Estadísticas de tu recepción</li>
+                        <li>🔍 Buscar productos específicos</li>
+                        <li>📋 Generar reportes automáticos</li>
+                        <li>💡 Responder preguntas sobre los productos</li>
+                    </ul>
+                    <p>¿En qué puedo ayudarte?</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="ai-footer">
+            <div class="ai-suggestions" id="aiSuggestions">
+                <button class="ai-suggestion-btn" onclick="sendSuggestion('¿Cuántos productos he recibido?')">
+                    📊 Resumen de recepción
+                </button>
+                <button class="ai-suggestion-btn" onclick="sendSuggestion('¿Qué productos son del programa Diamante?')">
+                    💎 Productos Diamante
+                </button>
+                <button class="ai-suggestion-btn" onclick="sendSuggestion('Genera un reporte detallado')">
+                    📋 Generar reporte
+                </button>
+            </div>
+            <div class="ai-input-wrapper">
+                <input 
+                    type="text" 
+                    id="aiInput" 
+                    placeholder="Escribe tu pregunta..." 
+                    autocomplete="off"
+                    onkeypress="handleAIKeyPress(event)"
+                >
+                <button class="ai-btn-send" onclick="sendAIMessage()" id="aiSendBtn">
+                    ➤
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón flotante para abrir el asistente -->
+    <button class="ai-float-button" onclick="openAIAssistant()" id="aiFloatBtn" title="Asistente IA">
+        🤖
+        <span class="ai-notification-badge" id="aiNotificationBadge" style="display: none;">1</span>
+    </button>
+
     <script>
 let products = [];
         let scannedItems = [];
@@ -278,6 +344,7 @@ let products = [];
         let sessionHistory = [];
         let barcodeTimeout = null;
         let currentBulto = '';
+        let aiConversation = [];
 
         const STORAGE_KEY = 'wms_full_autosave';
         const HISTORY_KEY = 'wms_session_history';
@@ -1446,6 +1513,206 @@ buttons.forEach(btn => {
         }
     });
 });
+
+// ===== FUNCIONES DEL ASISTENTE IA =====
+
+function openAIAssistant() {
+    const assistant = document.getElementById('aiAssistant');
+    const floatBtn = document.getElementById('aiFloatBtn');
+    const badge = document.getElementById('aiNotificationBadge');
+    
+    assistant.classList.add('ai-assistant-open');
+    floatBtn.style.display = 'none';
+    badge.style.display = 'none';
+    
+    // Enfocar input
+    setTimeout(() => {
+        document.getElementById('aiInput').focus();
+    }, 300);
+}
+
+function closeAIAssistant() {
+    const assistant = document.getElementById('aiAssistant');
+    const floatBtn = document.getElementById('aiFloatBtn');
+    
+    assistant.classList.remove('ai-assistant-open');
+    floatBtn.style.display = 'flex';
+}
+
+function toggleAIAssistant() {
+    const assistant = document.getElementById('aiAssistant');
+    assistant.classList.toggle('ai-assistant-minimized');
+}
+
+function handleAIKeyPress(event) {
+    if (event.key === 'Enter') {
+        sendAIMessage();
+    }
+}
+
+function sendSuggestion(message) {
+    document.getElementById('aiInput').value = message;
+    sendAIMessage();
+}
+
+async function sendAIMessage() {
+    const input = document.getElementById('aiInput');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    // Limpiar input
+    input.value = '';
+    
+    // Agregar mensaje del usuario al chat
+    addAIMessage(message, 'user');
+    
+    // Mostrar estado "escribiendo..."
+    const typingId = addAIMessage('Escribiendo...', 'assistant', true);
+    
+    try {
+        // Preparar contexto de la recepción
+        const context = generateReceptionContext();
+        
+        // Llamar a la API de Claude
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                model: "claude-sonnet-4-20250514",
+                max_tokens: 1000,
+                system: `Eres un asistente experto en gestión de almacenes y sistemas WMS. Ayudas a los usuarios a gestionar recepciones de inventario de una farmacia.
+
+Contexto actual de la recepción:
+${context}
+
+Instrucciones:
+- Sé conciso y directo
+- Usa emojis para hacer las respuestas más amigables
+- Si te piden estadísticas, proporciona números exactos
+- Si te piden un reporte, genera un resumen estructurado
+- Responde siempre en español
+- Si no hay datos suficientes, dilo claramente`,
+                messages: [
+                    ...aiConversation,
+                    { role: "user", content: message }
+                ],
+            })
+        });
+
+        const data = await response.json();
+        
+        // Remover mensaje "escribiendo..."
+        removeAIMessage(typingId);
+        
+        if (data.content && data.content[0]) {
+            const assistantMessage = data.content[0].text;
+            
+            // Agregar respuesta al chat
+            addAIMessage(assistantMessage, 'assistant');
+            
+            // Guardar en conversación
+            aiConversation.push(
+                { role: "user", content: message },
+                { role: "assistant", content: assistantMessage }
+            );
+            
+            // Limitar historial a últimos 10 mensajes
+            if (aiConversation.length > 10) {
+                aiConversation = aiConversation.slice(-10);
+            }
+        } else {
+            removeAIMessage(typingId);
+            addAIMessage('Lo siento, hubo un error al procesar tu mensaje. Por favor intenta de nuevo.', 'assistant');
+        }
+        
+    } catch (error) {
+        console.error('Error en API de Claude:', error);
+        removeAIMessage(typingId);
+        addAIMessage('❌ Error de conexión. Por favor verifica tu conexión e intenta nuevamente.', 'assistant');
+    }
+}
+
+function generateReceptionContext() {
+    const totalProducts = scannedItems.length;
+    const totalQuantity = scannedItems.reduce((sum, item) => sum + item.cantidad, 0);
+    const bulto = currentBulto || 'Sin asignar';
+    
+    // Contar por programas
+    const programas = {
+        chico: scannedItems.filter(i => i.chico === 'si' || i.chico === 'x').length,
+        bigTurbo: scannedItems.filter(i => i.bigTurbo === 'si' || i.bigTurbo === 'x').length,
+        diamante: scannedItems.filter(i => i.diamante === 'si' || i.diamante === 'x').length,
+        oro: scannedItems.filter(i => i.oro === 'si' || i.oro === 'x').length,
+    };
+    
+    // Top 5 productos más recibidos
+    const topProducts = scannedItems
+        .slice(0, 5)
+        .map(i => `${i.nombre} (${i.cantidad} unidades)`)
+        .join(', ');
+    
+    return `
+- Bulto actual: ${bulto}
+- Total de productos escaneados: ${totalProducts}
+- Cantidad total de unidades: ${totalQuantity}
+- Productos programa CHICO: ${programas.chico}
+- Productos programa BIG TURBO: ${programas.bigTurbo}
+- Productos programa DIAMANTE: ${programas.diamante}
+- Productos programa ORO: ${programas.oro}
+- Últimos productos recibidos: ${topProducts || 'Ninguno'}
+    `.trim();
+}
+
+function addAIMessage(text, role, isTyping = false) {
+    const chatBody = document.getElementById('aiChatBody');
+    const messageId = `ai-msg-${Date.now()}`;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `ai-message ai-message-${role}`;
+    messageDiv.id = messageId;
+    
+    if (isTyping) {
+        messageDiv.innerHTML = `
+            <div class="ai-message-avatar">🤖</div>
+            <div class="ai-message-content ai-typing">
+                <div class="ai-typing-indicator">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        `;
+    } else {
+        const avatar = role === 'user' ? '👤' : '🤖';
+        // Convertir saltos de línea a <br> y formatear listas
+        const formattedText = text
+            .replace(/\n/g, '<br>')
+            .replace(/^- (.+)$/gm, '<li>$1</li>')
+            .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+        
+        messageDiv.innerHTML = `
+            <div class="ai-message-avatar">${avatar}</div>
+            <div class="ai-message-content">
+                ${formattedText}
+            </div>
+        `;
+    }
+    
+    chatBody.appendChild(messageDiv);
+    chatBody.scrollTop = chatBody.scrollHeight;
+    
+    return messageId;
+}
+
+function removeAIMessage(messageId) {
+    const message = document.getElementById(messageId);
+    if (message) {
+        message.remove();
+    }
+}
 
 // Función para mostrar alerta flotante
 function showFloatingAlert(message, itemId) {
