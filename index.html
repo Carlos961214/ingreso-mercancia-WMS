@@ -64,13 +64,33 @@
                             ✕
                         </button>
                     </div>
-                        <div class="bulto-current" id="bultoDisplay" style="display: none;">
-                        <div class="bulto-current-badge" id="bultoValue"></div>
-                        <button class="btn-bulto-edit" onclick="editBulto()">
-                            ✏️ Editar
-                        </button>
+<div class="bulto-current" id="bultoDisplay" style="display: none;">
+                        <div class="bulto-current-badge">
+                            <div class="bulto-current-text" id="bultoValue"></div>
+                            <div class="bulto-current-actions">
+                                <button class="btn-bulto-edit-inline" onclick="editBulto()">
+                                    ✏️ Editar
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                    <div class="bulto-editing" id="bultoEditing" style="display: none;">
+                        <input 
+                            type="text" 
+                            id="bultoEditInput" 
+                            placeholder="Nuevo número de bulto..." 
+                            autocomplete="off"
+                            maxlength="50"
+                        >
+                        <div class="btn-group">
+                            <button class="btn-bulto-save" onclick="saveBultoEdit()">
+                                💾 Guardar
+                            </button>
+                            <button class="btn-bulto-cancel-edit" onclick="cancelBultoEdit()">
+                                ✕ Cancelar
+                            </button>
+                        </div>
+                    </div>
             </div>
 
             <div id="searchSection" style="display: none;">
@@ -1354,10 +1374,18 @@ function clearAllAndRestart() {
     document.getElementById('productsCount').textContent = '';
 
     // Resetear tarjeta de bulto
-    const bultoCard = document.querySelector('.bulto-card');
-    if (bultoCard) {
-        bultoCard.classList.remove('compact');
-    }
+// Resetear tarjeta de bulto
+            const bultoCard = document.querySelector('.bulto-card');
+            if (bultoCard) {
+                bultoCard.classList.remove('compact');
+            }
+            
+            // Reset visualización de bulto
+            document.getElementById('bultoDisplay').style.display = 'none';
+            document.getElementById('bultoEditing').style.display = 'none';
+            document.getElementById('bultoInput').parentElement.style.display = 'flex';
+            
+            // Limpiar contenedor de items
     
     // Limpiar contenedor de items
     const itemsContainer = document.getElementById('itemsContainer');
@@ -1470,28 +1498,76 @@ function confirmBulto() {
     
     saveFullState();
 }
+function editBulto() {
+    const bultoDisplay = document.getElementById('bultoDisplay');
+    const bultoEditing = document.getElementById('bultoEditing');
+    const bultoEditInput = document.getElementById('bultoEditInput');
+    
+    bultoDisplay.style.display = 'none';
+    bultoEditing.style.display = 'flex';
+    
+    bultoEditInput.value = currentBulto;
+    
+    setTimeout(() => {
+        bultoEditInput.focus();
+        bultoEditInput.select();
+    }, 100);
+}
 
-        function editBulto() {
-            const bultoInput = document.getElementById('bultoInput');
-            const bultoCard = document.querySelector('.bulto-card');
-            
-            bultoInput.parentElement.style.display = 'flex';
-            document.getElementById('bultoDisplay').style.display = 'none';
-            
-            // Restaurar tamaño completo de la tarjeta
-            bultoCard.classList.remove('compact');
-            
-            setTimeout(() => {
-                bultoInput.focus();
-                bultoInput.select();
-            }, 100);
-        }
+function cancelBultoEdit() {
+    const bultoDisplay = document.getElementById('bultoDisplay');
+    const bultoEditing = document.getElementById('bultoEditing');
+    
+    bultoEditing.style.display = 'none';
+    bultoDisplay.style.display = 'flex';
+}
 
-        function clearBulto() {
-            document.getElementById('bultoInput').value = '';
-            document.getElementById('bultoClearBtn').style.display = 'none';
-            document.getElementById('bultoInput').focus();
+function saveBultoEdit() {
+    const bultoEditInput = document.getElementById('bultoEditInput');
+    const newBulto = bultoEditInput.value.trim();
+    
+if (!newBulto) {
+    alert('Por favor ingresa un número de bulto válido');
+    bultoEditInput.focus();
+    return;
+}
+    
+    // Usar la función confirmBulto existente pero con el nuevo valor
+    const previousBulto = currentBulto;
+    currentBulto = newBulto;
+    
+    // Si hay items recibidos y se está cambiando el bulto
+    if (scannedItems.length > 0 && previousBulto !== newBulto) {
+        const confirmUpdate = confirm(
+            `¿Deseas actualizar el bulto de los ${scannedItems.length} productos ya recibidos?\n\n` +
+            `De: "${previousBulto}"\n` +
+            `A: "${currentBulto}"`
+        );
+        
+        if (confirmUpdate) {
+            // Actualizar el bulto en todos los items
+            scannedItems.forEach(item => {
+                item.bulto = currentBulto;
+            });
+            updateItemsList();
+            showFloatingAlert(`✅ Bulto actualizado en ${scannedItems.length} productos`);
         }
+    }
+    
+    // Actualizar la visualización
+    document.getElementById('bultoValue').textContent = currentBulto;
+    
+    // Ocultar edición y mostrar badge
+    cancelBultoEdit();
+    
+    saveFullState();
+}
+
+function clearBulto() {
+    document.getElementById('bultoInput').value = '';
+    document.getElementById('bultoClearBtn').style.display = 'none';
+    document.getElementById('bultoInput').focus();
+}
 
         // Función para mostrar alerta flotante
 

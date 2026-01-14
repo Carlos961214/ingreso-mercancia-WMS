@@ -1351,11 +1351,22 @@ input:focus {
 }
 
 .bulto-card.compact {
-    padding: 16px 24px;
-    border-width: 2px;
+    padding: 0 0 16px 0;
+    border-width: 0;
+    background: transparent;
+    box-shadow: none;
+    margin-bottom: 30px;
+}
+
+.bulto-card.compact::before {
+    display: none;
 }
 
 .bulto-card.compact .bulto-header {
+    display: none;
+}
+
+.bulto-card.compact .bulto-input-wrapper {
     display: none;
 }
 
@@ -1462,7 +1473,6 @@ input:focus {
 .bulto-current {
     display: none;
     align-items: center;
-    gap: 8px;
     padding: 0;
     background: transparent;
     border: none;
@@ -1471,43 +1481,147 @@ input:focus {
 .bulto-current-badge {
     background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: white;
-    padding: 10px 18px;
+    padding: 12px 20px;
     border-radius: 12px;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 15px;
     letter-spacing: 0.03em;
-    display: inline-flex;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.35);
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.bulto-current-badge:hover {
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
+    transform: translateY(-2px);
+}
+
+.bulto-current-text {
+    display: flex;
     align-items: center;
     gap: 10px;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     flex: 1;
 }
 
-.bulto-current-badge::before {
+.bulto-current-text::before {
     content: '📦';
-    font-size: 20px;
+    font-size: 22px;
 }
 
-.btn-bulto-edit {
-    background: rgba(59, 130, 246, 0.1);
-    color: #2563eb;
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    padding: 8px 14px;
-    border-radius: 10px;
+.bulto-current-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-bulto-edit-inline,
+.btn-bulto-cancel-inline {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 6px 12px;
+    border-radius: 8px;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     transition: all 0.2s ease;
     white-space: nowrap;
 }
 
-.btn-bulto-edit:hover {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.5);
+.btn-bulto-edit-inline:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.btn-bulto-cancel-inline {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.btn-bulto-cancel-inline:hover {
+    background: rgba(239, 68, 68, 0.3);
+    border-color: rgba(239, 68, 68, 0.6);
+}
+
+/* Edición de bulto en modo expandido */
+.bulto-editing {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    margin-top: 12px;
+}
+
+.bulto-editing input {
+    width: 100%;
+    padding: 14px 18px;
+    border: 3px solid #93c5fd;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    background: white;
+    color: #1e40af;
+    transition: all 0.3s ease;
+    box-sizing: border-box;
+}
+
+.bulto-editing input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    outline: none;
+}
+
+.bulto-editing .btn-group {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.btn-bulto-save,
+.btn-bulto-cancel-edit {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.btn-bulto-save {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 3px 8px rgba(16, 185, 129, 0.3);
+}
+
+.btn-bulto-save:hover {
+    background: linear-gradient(135deg, #059669, #047857);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.btn-bulto-cancel-edit {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 3px 8px rgba(239, 68, 68, 0.3);
+}
+
+.btn-bulto-cancel-edit:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
 }
 
 /* Badge de bulto en items */
